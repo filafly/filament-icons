@@ -1,54 +1,69 @@
-# Filament Icons
+<p class="filament-hidden" align="center">
+    <img src="images/filament-icons.png" alt="Banner" style="width: 100%; max-width: 800px;" />
+</p>
+A package to replace Filament's default Heroicons with your preferred icon set, providing unified icon management with style variations and overrides.
 
-A small Laravel package that provides a central service provider for managing multiple Filament icon-set drivers.
+## Available Icon Sets
 
-## Installation
+The following icon sets are available as separate packages that work with this core package:
 
-Install the core package and publish its config:
+### Official Implementations
+- [Filament Phosphor Icons](https://github.com/filafly/filament-phosphor-icons)
 
-```bash
-composer require filafly/filament-icon
-```
+### Community Implementations
+- (none yet...)
 
-## Configuration
+## Creating Your Own Icon Set
+This package allows you to create your own icon set implementations, enabling you to integrate any icon library that has a Blade Icons implementation with Filament. Here's how to get started:
 
-In your `config/filament-icons.php`, choose which driver to use and map driver keys to their fully qualified ServiceProvider classes:
+### Requirements
+The icon set must have a [Blade Icons](https://github.com/blade-ui-kit/blade-icons) implementation. If there isn't one, you'll need to add it yourself.
+
+1. Create an implementation of `Filafly\FilamentIcons\IconSet` with a name that matches the [IconSet]Icons pattern and set the plugin ID.
 
 ```php
-return [
-    // The active icon driver (e.g. 'heroicons', 'phosphor')
-    'driver'  => env('FILAMENT_ICON_DRIVER', 'heroicons'),
+use Filafly\FilamentIcons\IconSet;
 
-    // Register available drivers and their providers
-    'drivers' => [
-        'heroicons' => \Filament\IconPlugin\HeroiconsServiceProvider::class,
-        'phosphor'  => \Filafly\PhosphorIconReplacement\PhosphorIconServiceProvider::class,
-        // Add your own packs here...
-    ],
-];
+class PhosphorIcons extends IconSet
+{
+    protected string $pluginId = 'phosphor-for-filament';
 ```
 
-Set your driver in your `.env`:
+2. Map all Filament icon aliases to your desired icons without the icon style specified.
 
-```dotenv
-FILAMENT_ICON_DRIVER=phosphor
+```php
+ protected function getIconMap(): array
+    {
+        return [
+            'panels::global-search.field' => 'phosphor-magnifying-glass',
+            'panels::pages.dashboard.actions.filter' => 'phosphor-funnel',
+            'panels::pages.dashboard.navigation-item' => 'phosphor-house',
+            ...
 ```
 
-Then rebuild your config cache:
+3. Add the available styles and the corresponding suffix.
 
-```bash
-php artisan config:clear
-php artisan config:cache
+```php
+    public function getAvailableStyles(): array
+    {
+        return [
+            'thin' => '-thin',
+            'light' => '-light',
+            'regular' => '',
+            ...
 ```
 
-Icons will automatically swap out based on the selected driver.
+4. Create individual style methods.
 
-## Driver Author Guide
+```php
+    public function thin(): static
+    {
+        self::setStyle('thin');
 
-To build a new icon-set pack:
+        return $this;
+    }
+```
 
-1. Implement the `\Filafly\FilamentIcons\IconDriverContract` interface in your ServiceProvider.
-2. Declare that ServiceProvider in your `composer.json` under `extra.laravel.providers` so Laravel auto-discovers it.
-3. Publish your package and add its key to the `drivers` array in `config/filament-icons.php`.
+## License
 
-Happy iconing! 🎨
+The MIT License (MIT). Please see [License File](LICENSE.md) for more information.
