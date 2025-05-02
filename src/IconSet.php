@@ -8,50 +8,55 @@ use Filament\Support\Facades\FilamentIcon;
 
 abstract class IconSet implements Plugin
 {
+    /*
+    |--------------------------------------------------------------------------
+    | Set configuration
+    |--------------------------------------------------------------------------
+    */
     protected string $pluginId;
 
-    protected string $style;
+    protected string $defaultStyle;
 
-    protected array $overriddenAliases = [];
+    protected bool $shouldPrefixStyle = false;
 
-    protected array $overriddenIcons = [];
+    protected array $styleMap = [];
+
+    protected array $iconMap = [];
+
+    protected array $forcedStyles = [];
 
     /*
     |--------------------------------------------------------------------------
     | Icon Swap
     |--------------------------------------------------------------------------
     */
-    abstract protected function getIconMap(): array;
+    protected string $currentStyle;
 
-    abstract public function getAvailableStyles(): array;
+    protected array $overriddenAliases = [];
 
-    final public function setStyle(string $style): self
-    {
-        $this->style = $this->getAvailableStyles()[$style];
-
-        return $this;
-    }
+    protected array $overriddenIcons = [];
 
     final public function registerIcons()
     {
-        // dump(
-        //     $this->overriddenAliases,
-        //     $this->overriddenIcons,
-        //     $this->style
-        // );
+        $style = $this->currentStyle ?? $this->defaultStyle ?? $this->styleMap[0];
 
-        FilamentIcon::register(
-            collect($this->getIconMap())
-                ->mapWithKeys(function ($icon, $key) {
-                    $style = $this->overriddenAliases[$key]
-                        ?? $this->overriddenIcons[$icon]
-                        ?? $this->style;
-                    $style ??= '';
+        $icons = collect($this->iconMap)
+            ->mapWithKeys(function ($icon, $key) use ($style) {
+                $forcedStyle = $this->forcedStyles[$icon] ?? null;
+                $chosenStyle = $forcedStyle ?? $style;
 
-                    return [$key => $icon.$style];
-                })
-                ->toArray()
-        );
+                $styleString = $this->overriddenAliases[$key]
+                    ?? $this->overriddenIcons[$icon]
+                    ?? $this->styleMap[$chosenStyle]
+                    ?? '';
+
+                return [$key => $this->shouldPrefixStyle
+                    ? $styleString.$icon
+                    : $icon.$styleString];
+            })
+            ->toArray();
+
+        FilamentIcon::register($icons);
     }
 
     final public function overrideStyleForAlias(array|string $keys, string $style): static
@@ -78,9 +83,24 @@ abstract class IconSet implements Plugin
         $items = is_array($items) ? $items : [$items];
         $overrideType = $type === 'aliases' ? 'overriddenAliases' : 'overriddenIcons';
 
-        foreach ($items as $item) {
-            $this->{$overrideType}[$item] = $style === 'regular' ? '' : '-'.$style;
+        if (! array_key_exists($style, $this->styleMap)) {
+            throw new \InvalidArgumentException("Style '{$style}' is not available for this icon set.");
         }
+
+        foreach ($items as $item) {
+            $this->{$overrideType}[$item] = $this->styleMap[$style];
+        }
+    }
+
+    public function __call($name, $arguments): static
+    {
+        if (! array_key_exists($name, $this->styleMap)) {
+            throw new \InvalidArgumentException("Style '{$name}' is not available for this icon set.");
+        }
+
+        $this->currentStyle = $name;
+
+        return $this;
     }
 
     /*
