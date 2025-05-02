@@ -9,7 +9,7 @@ The following icon sets are available as separate packages that work with this c
 
 ## Official Implementations
 - [Phosphor](https://github.com/filafly/filament-phosphor-icons)
-- [Font Awesome](https://github.com/filafly/filament-phosphor-icons)
+- [Font Awesome](https://github.com/filafly/filament-font-awesome-icons)
 
 ## Community Implementations
 - (none yet...)
