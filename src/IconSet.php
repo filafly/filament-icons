@@ -1,6 +1,6 @@
 <?php
 
-namespace Filafly\FilamentIcons;
+namespace Filafly\Icons;
 
 use Filament\Contracts\Plugin;
 use Filament\Panel;
