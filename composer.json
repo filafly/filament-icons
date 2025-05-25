@@ -8,6 +8,7 @@
     "Filament",
     "icons",
     "Font Awesome",
+    "Phosphor",
     "replace",
     "swap"
   ],
@@ -26,7 +27,7 @@
   },
   "autoload": {
     "psr-4": {
-      "Filafly\\FilamentIcons\\": "src/"
+      "Filafly\\Icons\\": "src/"
     }
   },
   "minimum-stability": "dev",

@@ -20,10 +20,10 @@ This package allows you to create your own icon set implementations, enabling yo
 ## Requirements
 The icon set must have a [Blade Icons](https://github.com/blade-ui-kit/blade-icons) implementation. If there isn't one, you'll need to add it yourself.
 
-1. Create an implementation of `Filafly\FilamentIcons\IconSet` with a class name that follows the pattern `YourSetNameIcons` (replace `YourSetName` with the name of your icon set), and set the plugin ID.
+1. Create an implementation of `Filafly\Icons\IconSet` with a class name that follows the pattern `YourSetNameIcons` (replace `YourSetName` with the name of your icon set), and set the plugin ID.
 
 ```php
-use Filafly\FilamentIcons\IconSet;
+use Filafly\Icons\IconSet;
 
 class PhosphorIcons extends IconSet
 {
