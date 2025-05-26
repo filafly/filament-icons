@@ -78,7 +78,7 @@ abstract class IconSet implements Plugin
     | Helpers
     |--------------------------------------------------------------------------
     */
-    final private function setOverriddenStyle(array|string $items, string $style, string $type = 'aliases'): void
+    private function setOverriddenStyle(array|string $items, string $style, string $type = 'aliases'): void
     {
         $items = is_array($items) ? $items : [$items];
         $overrideType = $type === 'aliases' ? 'overriddenAliases' : 'overriddenIcons';
