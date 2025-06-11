@@ -30,7 +30,7 @@
       "Filafly\\Icons\\": "src/"
     }
   },
-  "minimum-stability": "stable",
+  "minimum-stability": "beta",
   "prefer-stable": true,
   "config": {
     "sort-packages": true
