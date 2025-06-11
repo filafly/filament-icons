@@ -23,14 +23,14 @@
   ],
   "require": {
     "php": "^8.1",
-    "filament/filament": "^3.2.3"
+    "filament/filament": "^3.2.3|^4.0@beta"
   },
   "autoload": {
     "psr-4": {
       "Filafly\\Icons\\": "src/"
     }
   },
-  "minimum-stability": "dev",
+  "minimum-stability": "stable",
   "prefer-stable": true,
   "config": {
     "sort-packages": true
