@@ -123,7 +123,7 @@ abstract class IconSet implements Plugin
         return app(static::class);
     }
 
-    final public function register(Panel $panel): void
+    public function register(Panel $panel): void
     {
         //
     }
