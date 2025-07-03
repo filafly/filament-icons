@@ -68,14 +68,14 @@ abstract class IconSet implements Plugin
         FilamentIcon::register($icons);
     }
 
-    final public function overrideStyleForAlias(array|BackedEnum $keys, BackedEnum $style): static
+    final public function overrideStyleForAlias(array|string|BackedEnum $keys, IconStyle $style): static
     {
         $this->setOverriddenStyle($keys, $style, 'aliases');
 
         return $this;
     }
 
-    final public function overrideStyleForIcon(array|string $icons, BackedEnum $style): static
+    final public function overrideStyleForIcon(array|string|BackedEnum $icons, IconStyle $style): static
     {
         $this->setOverriddenStyle($icons, $style, 'icons');
 
@@ -87,7 +87,7 @@ abstract class IconSet implements Plugin
     | Helpers
     |--------------------------------------------------------------------------
     */
-    private function setOverriddenStyle(array|string|BackedEnum $items, BackedEnum $style, string $type = 'aliases'): void
+    private function setOverriddenStyle(array|string|BackedEnum $items, IconStyle $style, string $type = 'aliases'): void
     {
         $items = is_array($items) ? $items : [$items];
         $overrideType = $type === 'aliases' ? 'overriddenAliases' : 'overriddenIcons';
