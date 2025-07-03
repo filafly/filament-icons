@@ -5,6 +5,8 @@ namespace Filafly\Icons;
 use BackedEnum;
 use Filament\Contracts\Plugin;
 use Filament\Panel;
+use Filament\Support\Enums\Icon;
+use Filament\Support\Enums\IconStyle;
 use Filament\Support\Facades\FilamentIcon;
 
 abstract class IconSet implements Plugin
@@ -16,7 +18,7 @@ abstract class IconSet implements Plugin
     */
     protected string $pluginId;
 
-    protected string $defaultStyle;
+    protected ?IconStyle $defaultStyle = null;
 
     protected bool $shouldPrefixStyle = false;
 
@@ -31,7 +33,7 @@ abstract class IconSet implements Plugin
     | Icon Swap
     |--------------------------------------------------------------------------
     */
-    protected string $currentStyle;
+    protected ?IconStyle $currentStyle = null;
 
     protected array $overriddenAliases = [];
 
@@ -39,22 +41,26 @@ abstract class IconSet implements Plugin
 
     final public function registerIcons()
     {
-        $styleEnum = $this->currentStyle ?? $this->defaultStyle ?? array_key_first($this->styleMap);
+        $styleEnum = $this->currentStyle
+            ?? $this->defaultStyle
+            ?? IconStyle::from(array_key_first($this->styleMap));
 
         $icons = collect($this->iconMap)
-            ->mapWithKeys(function ($iconEnum, $keyEnum) use ($styleEnum) {
-                $forcedStyleEnum = $this->forcedStyles[$iconEnum->value] ?? null;
+            ->mapWithKeys(function (string $icon, string|BackedEnum $alias) use ($styleEnum) {
+                $aliasEnum = $alias instanceof BackedEnum ? $alias : Icon::from($alias);
+
+                $forcedStyleEnum = $this->forcedStyles[$aliasEnum->value] ?? null;
                 $chosenStyleEnum = $forcedStyleEnum ?? $styleEnum;
 
-                $styleString = $this->overriddenAliases[$keyEnum->value]
-                    ?? $this->overriddenIcons[$iconEnum->value]
+                $styleString = $this->overriddenAliases[$aliasEnum->value]
+                    ?? $this->overriddenIcons[$icon]
                     ?? $this->styleMap[$chosenStyleEnum->value]
                     ?? '';
 
                 return [
-                    $keyEnum->value => $this->shouldPrefixStyle
-                        ? $styleString.$iconEnum->value
-                        : $iconEnum->value.$styleString,
+                    $aliasEnum->value => $this->shouldPrefixStyle
+                        ? $styleString.$icon
+                        : $icon.$styleString,
                 ];
             })
             ->toArray();
@@ -69,7 +75,7 @@ abstract class IconSet implements Plugin
         return $this;
     }
 
-    final public function overrideStyleForIcon(array|BackedEnum $icons, BackedEnum $style): static
+    final public function overrideStyleForIcon(array|string $icons, BackedEnum $style): static
     {
         $this->setOverriddenStyle($icons, $style, 'icons');
 
@@ -81,7 +87,7 @@ abstract class IconSet implements Plugin
     | Helpers
     |--------------------------------------------------------------------------
     */
-    private function setOverriddenStyle(array|BackedEnum $items, BackedEnum $style, string $type = 'aliases'): void
+    private function setOverriddenStyle(array|string|BackedEnum $items, BackedEnum $style, string $type = 'aliases'): void
     {
         $items = is_array($items) ? $items : [$items];
         $overrideType = $type === 'aliases' ? 'overriddenAliases' : 'overriddenIcons';
@@ -91,7 +97,8 @@ abstract class IconSet implements Plugin
         }
 
         foreach ($items as $item) {
-            $this->{$overrideType}[$item->value] = $this->styleMap[$style->value];
+            $key = $item instanceof BackedEnum ? $item->value : $item;
+            $this->{$overrideType}[$key] = $this->styleMap[$style->value];
         }
     }
 
@@ -101,7 +108,7 @@ abstract class IconSet implements Plugin
             throw new \InvalidArgumentException("Style '{$name}' is not available for this icon set.");
         }
 
-        $this->currentStyle = $name;
+        $this->currentStyle = IconStyle::from($name);
 
         return $this;
     }

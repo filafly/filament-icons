@@ -34,10 +34,12 @@ class PhosphorIcons extends IconSet
 2. Map all Filament icon aliases to your desired icons. Do not include any style specific string fragments such as "regular", "duotone", "-o", or "far-".
 
 ```php
+use Filament\Support\Enums\Icon;
+
 protected array $iconMap = [
-    'panels::global-search.field' => 'phosphor-magnifying-glass',
-    'panels::pages.dashboard.actions.filter' => 'phosphor-funnel',
-    'panels::pages.dashboard.navigation-item' => 'phosphor-house',
+    Icon::GlobalSearchField => 'phosphor-magnifying-glass',
+    Icon::DashboardFilterAction => 'phosphor-funnel',
+    Icon::DashboardNavigationItem => 'phosphor-house',
     ...
 ];
 ```
@@ -45,10 +47,12 @@ protected array $iconMap = [
 3. Add the available icon styles and the corresponding style string used by Blade Icons.
 
 ```php
+use Filament\Support\Enums\IconStyle;
+
 protected array $styleMap = [
-    'thin' => '-thin',
-    'light' => '-light',
-    'regular' => '',
+    IconStyle::Thin => '-thin',
+    IconStyle::Light => '-light',
+    IconStyle::Regular => '',
     ...
 ];
 ```
@@ -61,7 +65,7 @@ protected array $styleMap = [
 You can specify which style in your `styleMap` will be the default. If not specified, the first style will be used.
 
 ```php
-protected string $defaultStyle = 'regular';
+protected IconStyle $defaultStyle = IconStyle::Regular;
 ```
 
 ### Forcing styles
@@ -69,7 +73,7 @@ You can force specific icons to always use a particular style using the `forcedS
 
 ```php
 protected array $forcedStyles = [
-    'github' => 'brands',
+    Icon::Github => IconStyle::Brands,
 ];
 ```
 
@@ -83,7 +87,7 @@ For example, you could add a `free()` method to restrict styles to only those av
 public function free(): self
 {
     foreach ($onlyRegularExists as $icon) {
-        $this->forcedStyles[$icon] = 'regular';
+        $this->forcedStyles[$icon] = IconStyle::Regular;
     }
 
     return $this;
