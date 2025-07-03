@@ -34,7 +34,7 @@ class PhosphorIcons extends IconSet
 2. Map all Filament icon aliases to your desired icons. Do not include any style specific string fragments such as "regular", "duotone", "-o", or "far-".
 
 ```php
-use Filament\Support\Enums\Icon;
+use Filafly\Icons\Enums\Icon;
 
 protected array $iconMap = [
     Icon::GlobalSearchField => 'phosphor-magnifying-glass',
@@ -47,7 +47,7 @@ protected array $iconMap = [
 3. Add the available icon styles and the corresponding style string used by Blade Icons.
 
 ```php
-use Filament\Support\Enums\IconStyle;
+use Filafly\Icons\Enums\IconStyle;
 
 protected array $styleMap = [
     IconStyle::Thin => '-thin',

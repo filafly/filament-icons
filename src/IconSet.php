@@ -5,9 +5,9 @@ namespace Filafly\Icons;
 use BackedEnum;
 use Filament\Contracts\Plugin;
 use Filament\Panel;
-use Filament\Support\Enums\Icon;
-use Filament\Support\Enums\IconStyle;
 use Filament\Support\Facades\FilamentIcon;
+use Filafly\Icons\Enums\Icon;
+use Filafly\Icons\Enums\IconStyle;
 
 abstract class IconSet implements Plugin
 {
