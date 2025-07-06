@@ -15,7 +15,11 @@ abstract class IconSet implements Plugin
     */
     protected string $pluginId;
 
-    protected string $defaultStyle;
+    protected mixed $iconEnum;
+
+    protected mixed $styleEnum;
+
+    protected mixed $defaultStyle;
 
     protected bool $shouldPrefixStyle = false;
 
@@ -30,15 +34,25 @@ abstract class IconSet implements Plugin
     | Icon Swap
     |--------------------------------------------------------------------------
     */
-    protected string $currentStyle;
+    protected mixed $currentStyle;
 
     protected array $overriddenAliases = [];
 
     protected array $overriddenIcons = [];
 
+    public function getStyleEnum(): mixed
+    {
+        return $this->styleEnum;
+    }
+
+    public function getIconEnum(): mixed
+    {
+        return $this->iconEnum;
+    }
+
     final public function registerIcons()
     {
-        $style = $this->currentStyle ?? $this->defaultStyle ?? $this->styleMap[0];
+        $style = $this->currentStyle ?? $this->defaultStyle ?? $this->getStyleEnum()::cases()[0];
 
         $icons = collect($this->iconMap)
             ->mapWithKeys(function ($icon, $key) use ($style) {
@@ -47,7 +61,7 @@ abstract class IconSet implements Plugin
 
                 $styleString = $this->overriddenAliases[$key]
                     ?? $this->overriddenIcons[$icon]
-                    ?? $this->styleMap[$chosenStyle]
+                    ?? $chosenStyle->value
                     ?? '';
 
                 return [$key => $this->shouldPrefixStyle
