@@ -130,6 +130,24 @@ abstract class IconSet implements Plugin
             : $icon.$styleString;
     }
 
+    // Generate style specific methods from the style enum
+    public function __call($name, $arguments): static
+    {
+        $styles = collect(
+            $this->getStyleEnum()::cases()
+        )->mapWithKeys(function ($style) {
+            return [strtolower($style->name) => $style->value];
+        })->toArray();
+
+        if (! array_key_exists($name, $styles)) {
+            throw new \InvalidArgumentException("Style '{$name}' is not available for this icon set.");
+        }
+
+        $this->currentStyle = $this->getStyleEnum()::from($styles[$name]);
+
+        return $this;
+    }
+
     /*
     |--------------------------------------------------------------------------
     | Filament
