@@ -54,29 +54,10 @@ abstract class IconSet implements Plugin
 
         $icons = collect($this->iconMap)
             ->mapWithKeys(function ($icon, $key) use ($style) {
-                $icon = $icon->value;
+                $styleString = $this->determineStyle($key, $icon->value, $style->value);
+                $validIconString = $this->getValidIconString($icon->value, $styleString);
 
-                $forcedStyle = $this->forcedStyles[$icon] ?? null;
-                $chosenStyle = $forcedStyle ?? $style;
-
-                $styleString = $this->overriddenAliases[$key]->value
-                    ?? $this->overriddenIcons[$icon]->value
-                    ?? $chosenStyle->value;
-
-                $iconName = $this->shouldPrefixStyle
-                    ? $styleString.$icon
-                    : $icon.$styleString;
-
-                $validIcon = $this->getIconEnum()::tryFrom($iconName);
-                if (! $validIcon) {
-                    $iconString = $this->shouldPrefixStyle
-                        ? $this->defaultStyle->value.$icon
-                        : $icon.$this->defaultStyle->value;
-                } else {
-                    $iconString = $validIcon->value;
-                }
-
-                return [$key => $iconString];
+                return [$key => $validIconString];
             })
             ->toArray();
 
@@ -111,6 +92,42 @@ abstract class IconSet implements Plugin
             $item = gettype($item) === 'string' ? $item : $item->value;
             $this->{$overrideType}[$item] = $style;
         }
+    }
+
+    private function determineStyle(string $key, string $icon, string $style): string
+    {
+        $forcedStyle = $this->forcedStyles[$icon] ?? null;
+        $chosenStyle = $forcedStyle?->value ?? $style;
+
+        return $this->getStyleString($key, $icon, $chosenStyle);
+    }
+
+    private function getValidIconString(string $icon, string $styleString): string
+    {
+        $iconName = $this->getIconName($icon, $styleString);
+
+        $validIcon = $this->getIconEnum()::tryFrom($iconName);
+        if (! $validIcon) {
+            $iconName = $this->getIconName($icon, $this->defaultStyle->value);
+        } else {
+            $iconName = $validIcon->value;
+        }
+
+        return $iconName;
+    }
+
+    private function getStyleString(string $key, string $icon, string $chosenStyle): string
+    {
+        return $this->overriddenAliases[$key]->value
+            ?? $this->overriddenIcons[$icon]->value
+            ?? $chosenStyle;
+    }
+
+    private function getIconName(string $icon, string $styleString): string
+    {
+        return $this->shouldPrefixStyle
+            ? $styleString.$icon
+            : $icon.$styleString;
     }
 
     /*
