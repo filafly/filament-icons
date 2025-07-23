@@ -6,6 +6,20 @@ use Filament\Contracts\Plugin;
 use Filament\Panel;
 use Filament\Support\Facades\FilamentIcon;
 
+/**
+ * Abstract base class for creating Filament icon sets with enum-driven icon mapping.
+ *
+ * This class provides a unified interface for replacing Filament's default icons
+ * with custom icon sets. Icon sets should extend this class and:
+ *
+ * 1. Define an icon enum with cases like IconName::SearchRegular, IconName::SearchSolid
+ * 2. Set the $pluginId, $iconEnum, and $iconPrefix (if necessary) properties
+ * 3. Map Filament aliases to specific enum cases in $iconMap
+ *
+ * The enum-driven approach ensures type safety and eliminates runtime style resolution.
+ * The iconPrefix is prepended to enum values when registering with Blade Icons
+ * (e.g., prefix "carbon" + enum "translate" = "carbon-translate").
+ */
 abstract class IconSet implements Plugin
 {
     /*
@@ -13,35 +27,30 @@ abstract class IconSet implements Plugin
     | Set configuration
     |--------------------------------------------------------------------------
     */
+
+    /** The unique plugin identifier for this icon set */
     protected string $pluginId;
 
+    /** The icon enum class containing all icon cases with styles baked in */
     protected mixed $iconEnum;
 
-    protected mixed $styleEnum;
+    /** The prefix to prepend to icon enum values when registering with Blade Icons */
+    protected string $iconPrefix;
 
-    protected mixed $defaultStyle;
-
-    protected bool $shouldPrefixStyle = false;
-
+    /** Map of Filament aliases to specific icon enum cases */
     protected array $iconMap = [];
-
-    protected array $forcedStyles = [];
 
     /*
     |--------------------------------------------------------------------------
-    | Icon Swap
+    | Icon Overrides
     |--------------------------------------------------------------------------
     */
-    protected mixed $currentStyle;
 
-    protected array $overriddenAliases = [];
+    /** Override specific aliases to use different icon enum cases */
+    protected array $aliasOverrides = [];
 
-    protected array $overriddenIcons = [];
-
-    public function getStyleEnum(): mixed
-    {
-        return $this->styleEnum;
-    }
+    /** Override icon enum cases to be replaced with different cases */
+    protected array $iconOverrides = [];
 
     public function getIconEnum(): mixed
     {
@@ -50,100 +59,53 @@ abstract class IconSet implements Plugin
 
     final public function registerIcons()
     {
-        $style = $this->currentStyle ?? $this->defaultStyle ?? $this->getStyleEnum()::cases()[0];
-
         $icons = collect($this->iconMap)
-            ->mapWithKeys(function ($icon, $key) use ($style) {
-                $styleString = $this->determineStyle($key, $icon->value, $style->value);
-                $validIconString = $this->getValidIconString($icon->value, $styleString);
+            ->mapWithKeys(function ($iconCase, $alias) {
+                // Apply any overrides - alias overrides take precedence
+                $finalIconCase = $this->aliasOverrides[$alias]
+                    ?? $this->iconOverrides[$iconCase->value]
+                    ?? $iconCase;
 
-                return [$key => $validIconString];
+                // Prepend the icon prefix for Blade Icons
+                $prefix = $this->iconPrefix ?? strtolower(class_basename($this->iconEnum));
+                $iconString = $prefix.'-'.$finalIconCase->value;
+
+                return [$alias => $iconString];
             })
             ->toArray();
 
         FilamentIcon::register($icons);
     }
 
-    final public function overrideStyleForAlias(mixed $keys, mixed $style): static
+    final public function overrideAlias(string $alias, mixed $iconCase): static
     {
-        $this->setOverriddenStyle($keys, $style, 'aliases');
+        $this->aliasOverrides[$alias] = $iconCase;
 
         return $this;
     }
 
-    final public function overrideStyleForIcon(mixed $icons, mixed $style): static
+    final public function overrideAliases(array $overrides): static
     {
-        $this->setOverriddenStyle($icons, $style, 'icons');
+        foreach ($overrides as $alias => $iconCase) {
+            $this->aliasOverrides[$alias] = $iconCase;
+        }
 
         return $this;
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Helpers
-    |--------------------------------------------------------------------------
-    */
-    private function setOverriddenStyle(mixed $items, mixed $style, string $type): void
+    final public function overrideIcon(mixed $fromIconCase, mixed $toIconCase): static
     {
-        $items = is_array($items) ? $items : [$items];
-        $overrideType = $type === 'aliases' ? 'overriddenAliases' : 'overriddenIcons';
+        $this->iconOverrides[$fromIconCase->value] = $toIconCase;
 
-        foreach ($items as $item) {
-            $item = gettype($item) === 'string' ? $item : $item->value;
-            $this->{$overrideType}[$item] = $style;
+        return $this;
+    }
+
+    final public function overrideIcons(array $overrides): static
+    {
+        foreach ($overrides as $fromIconCase => $toIconCase) {
+            $fromKey = is_object($fromIconCase) ? $fromIconCase->value : $fromIconCase;
+            $this->iconOverrides[$fromKey] = $toIconCase;
         }
-    }
-
-    private function determineStyle(string $key, string $icon, string $style): string
-    {
-        $forcedStyle = $this->forcedStyles[$icon] ?? null;
-        $chosenStyle = $forcedStyle?->value ?? $style;
-
-        return $this->getStyleString($key, $icon, $chosenStyle);
-    }
-
-    private function getValidIconString(string $icon, string $styleString): string
-    {
-        $iconName = $this->getIconName($icon, $styleString);
-
-        $validIcon = $this->getIconEnum()::tryFrom($iconName);
-        if (! $validIcon) {
-            $iconName = $this->getIconName($icon, $this->defaultStyle->value);
-        } else {
-            $iconName = $validIcon->value;
-        }
-
-        return $iconName;
-    }
-
-    private function getStyleString(string $key, string $icon, string $chosenStyle): string
-    {
-        return $this->overriddenAliases[$key]->value
-            ?? $this->overriddenIcons[$icon]->value
-            ?? $chosenStyle;
-    }
-
-    private function getIconName(string $icon, string $styleString): string
-    {
-        return $this->shouldPrefixStyle
-            ? $styleString.$icon
-            : $icon.$styleString;
-    }
-
-    // Generate style specific methods from the style enum
-    public function __call($name, $arguments): static
-    {
-        $styles = collect(
-            $this->getStyleEnum()::cases()
-        )->mapWithKeys(function ($style) {
-            return [strtolower($style->name) => $style->value];
-        })->toArray();
-
-        if (! array_key_exists($name, $styles)) {
-            throw new \InvalidArgumentException("Style '{$name}' is not available for this icon set.");
-        }
-
-        $this->currentStyle = $this->getStyleEnum()::from($styles[$name]);
 
         return $this;
     }

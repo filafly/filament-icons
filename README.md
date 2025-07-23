@@ -11,6 +11,7 @@ The following icon sets are available as separate packages that work with this c
 - [Phosphor](https://github.com/filafly/filament-phosphor-icons)
 - [Font Awesome](https://github.com/filafly/filament-font-awesome-icons)
 - [Iconoir](https://github.com/filafly/filament-iconoir-icons)
+- [Carbon](https://github.com/filafly/filament-carbon-icons)
 
 ## Community Implementations
 - (none yet...)
@@ -24,18 +25,7 @@ This package allows you to create your own icon set implementations, enabling yo
 If there isn't a Blade Icon implementation, you'll need to add it yourself. If you want to use Filament Icons in a Filament v3 project, use branch 1.x.
 
 ## Implementation
-1. Add the available icon styles and the corresponding style string used by Blade Icons.
-
-```php
-enum MyIconSetStyle: string
-{
-    case Regular = '';
-    case Solid = '-solid';
-}
-```
-> **Note:** The package automatically generates style-specific methods based on your `$styleEnum`. For example, if you have `Solid` and `Duotone` cases in your style enum, you can use `->solid()` and `->duotone()` to set the current style.
-
-2. Define all icons in the set and implement the `ScalableIcon` interface.
+1. Define all icons in the set with styles baked into the enum cases and implement the `ScalableIcon` interface.
 
 ```php
 use Filament\Support\Contracts\ScalableIcon;
@@ -44,17 +34,22 @@ use Filament\Support\Enums\IconSize;
 enum MyIconSet: string implements ScalableIcon
 {
     case ArrowUp = 'arrow-up';
+    case ArrowUpSolid = 'arrow-up-solid';
     case ArrowDown = 'arrow-down';
+    case ArrowDownSolid = 'arrow-down-solid';
+    case Search = 'search';
+    case SearchSolid = 'search-solid';
     ...
 
     public function getIconForSize(IconSize $size): string
     {
         // Your implementation of the ScalableIcon interface
+        // This can be as simple as `return "my-icon-set-{$this->value}"`
     }
 }
 ```
 
-3. Create an implementation of `Filafly\Icons\IconSet` with a class name that follows the pattern `MyIconSetIcons` (replace `MyIconSet` with the name of your icon set), and set `$pluginId`, `$iconEnum`, `$styleEnum`, and `$defaultStyle`.
+2. Create an implementation of `Filafly\Icons\IconSet` with a class name that follows the pattern `MyIconSetIcons` (replace `MyIconSet` with the name of your icon set), and set `$pluginId` and `$iconEnum`.
 
 ```php
 use Filafly\Icons\IconSet;
@@ -64,73 +59,27 @@ class MyIconSetIcons extends IconSet
     protected string $pluginId = 'filafly-filament-my-icons';
 
     protected mixed $iconEnum = MyIconSet::class;
-
-    protected mixed $styleEnum = MyIconSetStyle::class;
-
-    protected mixed $defaultStyle = MyIconSetStyle::Regular;
 }
 ```
 
-4. Map all Filament icon aliases to your desired icons. Do not include any style specific string fragments such as "regular", "duotone", "-o", or "far-".
+> **Icon Prefix**: The system automatically guesses the icon prefix by taking the lowercase class name of your `$iconEnum` (e.g., `MyIconSet` becomes `myiconset`). This prefix is prepended to enum values when registering with Blade Icons (e.g., `myiconset-search-solid`).
+> 
+> If your Blade Icons package uses a different prefix than the guessed name, you can override it by setting `$iconPrefix`:
+> ```php
+> protected string $iconPrefix = 'my-custom-prefix';
+> ```
+
+3. Map all Filament icon aliases to your specific icon enum cases (with styles baked in).
 
 ```php
+use Filament\View\PanelsIconAlias;
+
 protected array $iconMap = [
-    'panels::global-search.field' => MyIconSet::Search,
-    'panels::pages.dashboard.actions.filter' => MyIconSet::Funnel,
-    'panels::pages.dashboard.navigation-item' => MyIconSet::House,
+    PanelsIconAlias::GLOBAL_SEARCH_FIELD => MyIconSet::SearchSolid,
+    PanelsIconAlias::PAGES_DASHBOARD_ACTIONS_FILTER => MyIconSet::FunnelSolid,
+    PanelsIconAlias::PAGES_DASHBOARD_NAVIGATION_ITEM => MyIconSet::HouseDuotone,
     ...
 ];
-```
-
-5. If the Blade Icon implementation of the icon set prefixes the style string to the icon name, make sure to indicate this so icon names are built properly.
-
-```php
-class MyIconSetIcons extends IconSet
-{
-    protected bool $shouldPrefixStyle = true;
-}
-```
-
-## Optional Configuration
-
-### Setting a default style
-You can specify which style will be the default. If not specified, the first style will be used.
-
-```php
-protected string $defaultStyle = MyIconSetStyle::Regular;
-```
-
-### Forcing styles
-You can force specific icons to always use a particular style using the `forcedStyles` array. This overrides any style settings, including the default style and dynamic style changes. This is particularly useful when certain icons are only available in specific styles, such as brand icons that may only exist in a single style variant.
-
-```php
-protected array $forcedStyles = [
-    'carat-up' => MyIconSetStyle::Solid,
-];
-```
-
-### Advanced configuration
-For advanced customization, you can create additional methods that can be fluently chained on your `IconSet` class. These methods can modify the internal arrays and properties to control the behavior of the icon set.
-
-For example, you could add a `free()` method to restrict styles to only those available in the free version of an icon set:
-
-```php
-// In your icon set
-public function free(): self
-{
-    foreach ($onlyRegularExists as $icon) {
-        $this->forcedStyles[$icon] = MyIconSet::Regular;
-    }
-
-    return $this;
-}
-
-// In the Filament panel
-...
-->plugin(
-    MyIconSetIcons::make()->free()
-)
-...
 ```
 
 ## License
