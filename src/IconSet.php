@@ -2,9 +2,11 @@
 
 namespace Filafly\Icons;
 
+use BadMethodCallException;
 use Filament\Contracts\Plugin;
 use Filament\Panel;
 use Filament\Support\Facades\FilamentIcon;
+use InvalidArgumentException;
 
 /**
  * Abstract base class for creating Filament icon sets with enum-driven icon mapping.
@@ -208,16 +210,18 @@ abstract class IconSet implements Plugin
      * Override style for specific aliases
      *
      * @param  string|array  $aliases  Single alias or array of aliases to override
-     * @param  string  $style  Style name to apply
+     * @param  string|object  $style  Style name or enum case to apply
      */
-    final public function overrideStyleForAlias(string|array $aliases, string $style): static
+    final public function overrideStyleForAlias(string|array $aliases, string|object $style): static
     {
         if (! $this->hasStyle($style)) {
+            $styleIdentifier = is_object($style) ? $style::class : $style;
             $availableStyleNames = $this->getAvailableStyleNames();
-            throw new \InvalidArgumentException("Style '{$style}' is not available for this icon set. Available styles: ".implode(', ', $availableStyleNames));
+
+            throw new InvalidArgumentException("Style '{$styleIdentifier}' is not available for this icon set. Available styles: ".implode(', ', $availableStyleNames));
         }
 
-        $styleEnum = $this->styleEnum::fromStyleName($style);
+        $styleEnum = is_string($style) ? $this->styleEnum::fromStyleName($style) : $style;
 
         // Handle array of aliases
         if (is_array($aliases)) {
@@ -236,16 +240,18 @@ abstract class IconSet implements Plugin
      * Override style for specific icon enum cases
      *
      * @param  mixed  $iconCases  Single icon case (enum or string) or array of icon cases to override
-     * @param  string  $style  Style name to apply
+     * @param  string|object  $style  Style name or enum case to apply
      */
-    final public function overrideStyleForIcon(mixed $iconCases, string $style): static
+    final public function overrideStyleForIcon(mixed $iconCases, string|object $style): static
     {
         if (! $this->hasStyle($style)) {
+            $styleIdentifier = is_object($style) ? $style::class : $style;
             $availableStyleNames = $this->getAvailableStyleNames();
-            throw new \InvalidArgumentException("Style '{$style}' is not available for this icon set. Available styles: ".implode(', ', $availableStyleNames));
+
+            throw new InvalidArgumentException("Style '{$styleIdentifier}' is not available for this icon set. Available styles: ".implode(', ', $availableStyleNames));
         }
 
-        $styleEnum = $this->styleEnum::fromStyleName($style);
+        $styleEnum = is_string($style) ? $this->styleEnum::fromStyleName($style) : $style;
 
         // Handle array of icon cases
         if (is_array($iconCases)) {
@@ -287,6 +293,8 @@ abstract class IconSet implements Plugin
     {
         // Check if the target style is available for this icon set
         if (! $this->hasStyle($targetStyle)) {
+            // dd($targetStyle);
+
             return null;
         }
 
@@ -295,6 +303,14 @@ abstract class IconSet implements Plugin
         $targetCaseName = $baseName.$targetSuffix;
 
         $enumClass = $this->getIconEnum();
+
+        // dd(
+        //     $iconCase,
+        //     $baseName,
+        //     $targetSuffix,
+        //     $targetCaseName,
+        //     $enumClass
+        // );
 
         // Try to find the case with the target style
         foreach ($enumClass::cases() as $case) {
@@ -320,7 +336,15 @@ abstract class IconSet implements Plugin
         // Use available style suffixes from the style enum
         foreach ($this->styleEnum::cases() as $style) {
             $styleSuffix = $style->getEnumSuffix();
+            // dd(
+            //     $caseName,
+            //     $style,
+            //     $styleSuffix,
+            //     str_ends_with($caseName, $styleSuffix)
+            //     // substr($caseName, 0, -strlen($styleSuffix))
+            // );
             if (str_ends_with($caseName, $styleSuffix)) {
+
                 return substr($caseName, 0, -strlen($styleSuffix));
             }
         }
@@ -334,12 +358,13 @@ abstract class IconSet implements Plugin
     public function style(string $style): static
     {
         if (! $this->styleEnum) {
-            throw new \InvalidArgumentException('No style enum configured for this icon set.');
+            throw new InvalidArgumentException('No style enum configured for this icon set.');
         }
 
         if (! $this->hasStyle($style)) {
             $availableStyleNames = $this->getAvailableStyleNames();
-            throw new \InvalidArgumentException("Style '{$style}' is not available for this icon set. Available styles: ".implode(', ', $availableStyleNames));
+
+            throw new InvalidArgumentException("Style '{$style}' is not available for this icon set. Available styles: ".implode(', ', $availableStyleNames));
         }
 
         $this->currentStyle = $this->styleEnum::fromStyleName($style);
@@ -358,7 +383,8 @@ abstract class IconSet implements Plugin
         }
 
         $availableStyleNames = $this->getAvailableStyleNames();
-        throw new \BadMethodCallException("Method '{$name}' does not exist. Available style methods: ".implode(', ', $availableStyleNames));
+
+        throw new BadMethodCallException("Method '{$name}' does not exist. Available style methods: ".implode(', ', $availableStyleNames));
     }
 
     /*
