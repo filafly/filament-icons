@@ -52,15 +52,63 @@ abstract class IconSet implements Plugin
     /** Override icon enum cases to be replaced with different cases */
     protected array $iconOverrides = [];
 
-    /** Current style to apply to all icons (optional) */
-    protected ?IconStyle $currentStyle = null;
+    /** The style enum class containing all available styles for this icon set */
+    protected mixed $styleEnum = null;
 
-    /** Available styles for this icon set (subset of IconStyle cases) */
-    protected array $availableStyles = [];
+    /** Current style to apply to all icons (optional) */
+    protected mixed $currentStyle = null;
 
     public function getIconEnum(): mixed
     {
         return $this->iconEnum;
+    }
+
+    /**
+     * Get the style enum class for this icon set
+     */
+    public function getStyleEnum(): ?string
+    {
+        return $this->styleEnum;
+    }
+
+    /**
+     * Get the available styles for this icon set
+     */
+    public function getAvailableStyles(): array
+    {
+        if (! $this->styleEnum) {
+            return [];
+        }
+
+        return $this->styleEnum::cases();
+    }
+
+    /**
+     * Get the available style names (lowercase) for this icon set
+     */
+    public function getAvailableStyleNames(): array
+    {
+        if (! $this->styleEnum) {
+            return [];
+        }
+
+        return $this->styleEnum::getStyleNames();
+    }
+
+    /**
+     * Check if a style is available for this icon set
+     */
+    public function hasStyle(string|object $style): bool
+    {
+        if (! $this->styleEnum) {
+            return false;
+        }
+
+        if (is_string($style)) {
+            return $this->styleEnum::fromStyleName($style) !== null;
+        }
+
+        return in_array($style, $this->styleEnum::cases());
     }
 
     final public function registerIcons()
@@ -138,10 +186,10 @@ abstract class IconSet implements Plugin
     /**
      * Find an icon enum case that matches the base name with a different style
      */
-    private function findIconWithStyle(mixed $iconCase, IconStyle $targetStyle): ?object
+    private function findIconWithStyle(mixed $iconCase, mixed $targetStyle): ?object
     {
         // Check if the target style is available for this icon set
-        if (! in_array($targetStyle, $this->availableStyles)) {
+        if (! $this->hasStyle($targetStyle)) {
             return null;
         }
 
@@ -168,8 +216,12 @@ abstract class IconSet implements Plugin
     {
         $caseName = $iconCase->name;
 
-        // Use available style suffixes
-        foreach ($this->availableStyles as $style) {
+        if (! $this->styleEnum) {
+            return $caseName;
+        }
+
+        // Use available style suffixes from the style enum
+        foreach ($this->styleEnum::cases() as $style) {
             $styleSuffix = $style->getEnumSuffix();
             if (str_ends_with($caseName, $styleSuffix)) {
                 return substr($caseName, 0, -strlen($styleSuffix));
@@ -184,14 +236,16 @@ abstract class IconSet implements Plugin
      */
     public function style(string $style): static
     {
-        $styleEnum = IconStyle::fromStyleName($style);
+        if (! $this->styleEnum) {
+            throw new \InvalidArgumentException('No style enum configured for this icon set.');
+        }
 
-        if (! $styleEnum || ! in_array($styleEnum, $this->availableStyles)) {
-            $availableStyleNames = array_map(fn ($s) => $s->getStyleName(), $this->availableStyles);
+        if (! $this->hasStyle($style)) {
+            $availableStyleNames = $this->getAvailableStyleNames();
             throw new \InvalidArgumentException("Style '{$style}' is not available for this icon set. Available styles: ".implode(', ', $availableStyleNames));
         }
 
-        $this->currentStyle = $styleEnum;
+        $this->currentStyle = $this->styleEnum::fromStyleName($style);
 
         return $this;
     }
@@ -199,15 +253,14 @@ abstract class IconSet implements Plugin
     /**
      * Handle dynamic style method calls
      */
-    public function __call(string $name, array $_): static
+    public function __call(string $name, array $arguments): static
     {
         // Check if the method name matches an available style
-        $styleEnum = IconStyle::fromStyleName($name);
-        if ($styleEnum && in_array($styleEnum, $this->availableStyles)) {
+        if ($this->hasStyle($name)) {
             return $this->style($name);
         }
 
-        $availableStyleNames = array_map(fn ($s) => $s->getStyleName(), $this->availableStyles);
+        $availableStyleNames = $this->getAvailableStyleNames();
         throw new \BadMethodCallException("Method '{$name}' does not exist. Available style methods: ".implode(', ', $availableStyleNames));
     }
 
