@@ -156,6 +156,119 @@ class IconSetTest extends TestCase
         $this->assertTrue($this->iconSet->hasStyle(TestStyleEnum::Regular));
         $this->assertTrue($this->iconSet->hasStyle(TestStyleEnum::Solid));
     }
+
+    public function test_override_style_for_alias()
+    {
+        $result = $this->iconSet->overrideStyleForAlias('actions.create', 'solid');
+
+        $this->assertSame($this->iconSet, $result);
+        $this->assertArrayHasKey('actions.create', $this->iconSet->getAliasStyleOverrides());
+        $this->assertEquals(TestStyleEnum::Solid, $this->iconSet->getAliasStyleOverrides()['actions.create']);
+    }
+
+    public function test_override_style_for_alias_with_invalid_style()
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage("Style 'filled' is not available for this icon set. Available styles: regular, solid");
+
+        $this->iconSet->overrideStyleForAlias('actions.create', 'filled');
+    }
+
+    public function test_override_style_for_icon()
+    {
+        $result = $this->iconSet->overrideStyleForIcon(TestIconEnum::PlusRegular, 'solid');
+
+        $this->assertSame($this->iconSet, $result);
+        $this->assertArrayHasKey('plus-regular', $this->iconSet->getIconStyleOverrides());
+        $this->assertEquals(TestStyleEnum::Solid, $this->iconSet->getIconStyleOverrides()['plus-regular']);
+    }
+
+    public function test_override_style_for_icon_with_string_key()
+    {
+        $result = $this->iconSet->overrideStyleForIcon('plus-regular', 'solid');
+
+        $this->assertSame($this->iconSet, $result);
+        $this->assertArrayHasKey('plus-regular', $this->iconSet->getIconStyleOverrides());
+        $this->assertEquals(TestStyleEnum::Solid, $this->iconSet->getIconStyleOverrides()['plus-regular']);
+    }
+
+    public function test_override_style_for_icon_with_invalid_style()
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage("Style 'filled' is not available for this icon set. Available styles: regular, solid");
+
+        $this->iconSet->overrideStyleForIcon(TestIconEnum::PlusRegular, 'filled');
+    }
+
+    public function test_precedence_order_exact_overrides_win()
+    {
+        // Set up multiple override types
+        $this->iconSet
+            ->solid() // Global style
+            ->overrideStyleForAlias('actions.create', 'regular') // Style override
+            ->overrideAlias('actions.create', TestIconEnum::TrashSolid); // Exact override (should win)
+
+        // Exact override should take precedence over everything
+        $this->assertEquals(TestIconEnum::TrashSolid, $this->iconSet->getAliasOverrides()['actions.create']);
+    }
+
+    public function test_precedence_order_style_overrides_beat_global()
+    {
+        // Test that alias style override beats global style
+        $this->iconSet
+            ->solid() // Global style (should be overridden)
+            ->overrideStyleForAlias('actions.create', 'regular'); // Should take precedence
+
+        $this->assertEquals(TestStyleEnum::Regular, $this->iconSet->getAliasStyleOverrides()['actions.create']);
+        $this->assertEquals(TestStyleEnum::Solid, $this->iconSet->getCurrentStyle());
+    }
+
+    public function test_override_style_for_alias_with_array()
+    {
+        $aliases = ['actions.create', 'actions.delete', 'actions.search'];
+        $result = $this->iconSet->overrideStyleForAlias($aliases, 'solid');
+
+        $this->assertSame($this->iconSet, $result);
+
+        $aliasStyleOverrides = $this->iconSet->getAliasStyleOverrides();
+        foreach ($aliases as $alias) {
+            $this->assertArrayHasKey($alias, $aliasStyleOverrides);
+            $this->assertEquals(TestStyleEnum::Solid, $aliasStyleOverrides[$alias]);
+        }
+    }
+
+    public function test_override_style_for_icon_with_array()
+    {
+        $icons = [TestIconEnum::PlusRegular, TestIconEnum::TrashRegular, 'search-regular'];
+        $result = $this->iconSet->overrideStyleForIcon($icons, 'solid');
+
+        $this->assertSame($this->iconSet, $result);
+
+        $iconStyleOverrides = $this->iconSet->getIconStyleOverrides();
+        $this->assertArrayHasKey('plus-regular', $iconStyleOverrides);
+        $this->assertArrayHasKey('trash-regular', $iconStyleOverrides);
+        $this->assertArrayHasKey('search-regular', $iconStyleOverrides);
+
+        $this->assertEquals(TestStyleEnum::Solid, $iconStyleOverrides['plus-regular']);
+        $this->assertEquals(TestStyleEnum::Solid, $iconStyleOverrides['trash-regular']);
+        $this->assertEquals(TestStyleEnum::Solid, $iconStyleOverrides['search-regular']);
+    }
+
+    public function test_override_style_for_alias_array_with_invalid_style()
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage("Style 'filled' is not available for this icon set. Available styles: regular, solid");
+
+        $this->iconSet->overrideStyleForAlias(['actions.create', 'actions.delete'], 'filled');
+    }
+
+    public function test_override_style_for_icon_array_with_invalid_style()
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage("Style 'filled' is not available for this icon set. Available styles: regular, solid");
+
+        $this->iconSet->overrideStyleForIcon([TestIconEnum::PlusRegular, TestIconEnum::TrashRegular], 'filled');
+    }
 }
 
 // Test implementations
@@ -226,6 +339,16 @@ class TestIconSet extends IconSet
     public function getIconOverrides(): array
     {
         return $this->iconOverrides;
+    }
+
+    public function getAliasStyleOverrides(): array
+    {
+        return $this->aliasStyleOverrides;
+    }
+
+    public function getIconStyleOverrides(): array
+    {
+        return $this->iconStyleOverrides;
     }
 
     public function getCurrentStyle(): mixed

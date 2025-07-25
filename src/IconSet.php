@@ -44,6 +44,13 @@ abstract class IconSet implements Plugin
     |--------------------------------------------------------------------------
     | Icon Overrides
     |--------------------------------------------------------------------------
+    |
+    | Override precedence order (highest to lowest priority):
+    | 1. Exact overrides (overrideAlias, overrideIcon) - Use exact icon
+    | 2. Style overrides (overrideStyleForAlias, overrideStyleForIcon) - Apply style to specific alias/icon
+    | 3. Global style (solid(), regular(), etc.) - Apply style to all icons
+    | 4. Original icon from $iconMap - Fallback
+    |
     */
 
     /** Override specific aliases to use different icon enum cases */
@@ -51,6 +58,12 @@ abstract class IconSet implements Plugin
 
     /** Override icon enum cases to be replaced with different cases */
     protected array $iconOverrides = [];
+
+    /** Override styles for specific aliases */
+    protected array $aliasStyleOverrides = [];
+
+    /** Override styles for specific icon enum cases */
+    protected array $iconStyleOverrides = [];
 
     /** The style enum class containing all available styles for this icon set */
     protected mixed $styleEnum = null;
@@ -115,11 +128,37 @@ abstract class IconSet implements Plugin
     {
         $icons = collect($this->iconMap)
             ->mapWithKeys(function ($iconCase, $alias) {
-                // Apply any overrides - alias overrides take precedence
-                $finalIconCase = $this->aliasOverrides[$alias]
-                    ?? $this->iconOverrides[$iconCase->value]
-                    ?? $this->applyStyleTransformation($iconCase)
-                    ?? $iconCase;
+                // Apply overrides with precedence order:
+                // 1. Exact overrides (highest priority)
+                // 2. Style overrides (medium priority)
+                // 3. Global style (lowest priority)
+                // 4. Original icon (fallback)
+
+                $finalIconCase = null;
+
+                // 1. Check for exact alias override (highest priority)
+                if (isset($this->aliasOverrides[$alias])) {
+                    $finalIconCase = $this->aliasOverrides[$alias];
+                }
+                // 2. Check for exact icon override (highest priority)
+                elseif (isset($this->iconOverrides[$iconCase->value])) {
+                    $finalIconCase = $this->iconOverrides[$iconCase->value];
+                }
+                // 3. Check for style override for this alias (medium priority)
+                elseif (isset($this->aliasStyleOverrides[$alias])) {
+                    $finalIconCase = $this->findIconWithStyle($iconCase, $this->aliasStyleOverrides[$alias]);
+                }
+                // 4. Check for style override for this icon (medium priority)
+                elseif (isset($this->iconStyleOverrides[$iconCase->value])) {
+                    $finalIconCase = $this->findIconWithStyle($iconCase, $this->iconStyleOverrides[$iconCase->value]);
+                }
+                // 5. Apply global style transformation (lowest priority)
+                else {
+                    $finalIconCase = $this->applyStyleTransformation($iconCase);
+                }
+
+                // 6. Fallback to original icon
+                $finalIconCase = $finalIconCase ?? $iconCase;
 
                 // Prepend the icon prefix for Blade Icons
                 $prefix = $this->iconPrefix ?? strtolower(class_basename($this->iconEnum));
@@ -160,6 +199,64 @@ abstract class IconSet implements Plugin
         foreach ($overrides as $fromIconCase => $toIconCase) {
             $fromKey = is_object($fromIconCase) ? $fromIconCase->value : $fromIconCase;
             $this->iconOverrides[$fromKey] = $toIconCase;
+        }
+
+        return $this;
+    }
+
+    /**
+     * Override style for specific aliases
+     *
+     * @param  string|array  $aliases  Single alias or array of aliases to override
+     * @param  string  $style  Style name to apply
+     */
+    final public function overrideStyleForAlias(string|array $aliases, string $style): static
+    {
+        if (! $this->hasStyle($style)) {
+            $availableStyleNames = $this->getAvailableStyleNames();
+            throw new \InvalidArgumentException("Style '{$style}' is not available for this icon set. Available styles: ".implode(', ', $availableStyleNames));
+        }
+
+        $styleEnum = $this->styleEnum::fromStyleName($style);
+
+        // Handle array of aliases
+        if (is_array($aliases)) {
+            foreach ($aliases as $alias) {
+                $this->aliasStyleOverrides[$alias] = $styleEnum;
+            }
+        } else {
+            // Handle single alias
+            $this->aliasStyleOverrides[$aliases] = $styleEnum;
+        }
+
+        return $this;
+    }
+
+    /**
+     * Override style for specific icon enum cases
+     *
+     * @param  mixed  $iconCases  Single icon case (enum or string) or array of icon cases to override
+     * @param  string  $style  Style name to apply
+     */
+    final public function overrideStyleForIcon(mixed $iconCases, string $style): static
+    {
+        if (! $this->hasStyle($style)) {
+            $availableStyleNames = $this->getAvailableStyleNames();
+            throw new \InvalidArgumentException("Style '{$style}' is not available for this icon set. Available styles: ".implode(', ', $availableStyleNames));
+        }
+
+        $styleEnum = $this->styleEnum::fromStyleName($style);
+
+        // Handle array of icon cases
+        if (is_array($iconCases)) {
+            foreach ($iconCases as $iconCase) {
+                $iconKey = is_object($iconCase) ? $iconCase->value : $iconCase;
+                $this->iconStyleOverrides[$iconKey] = $styleEnum;
+            }
+        } else {
+            // Handle single icon case
+            $iconKey = is_object($iconCases) ? $iconCases->value : $iconCases;
+            $this->iconStyleOverrides[$iconKey] = $styleEnum;
         }
 
         return $this;
