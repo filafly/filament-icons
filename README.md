@@ -3,6 +3,13 @@
 </p>
 A package to replace Filament's default Heroicons with your preferred icon set, providing unified icon management with style variations and overrides.
 
+# Features
+- **Unified Icon Management**: Standardize all icons across your Filament project.
+- **Style Variations**: Switch between icon styles (e.g., `solid`, `regular`, `light`) with a single method call.
+- **Granular Overrides**: Override specific icons or aliases at the global or component level.
+- **Extensible**: Easily create your own icon set implementations for any icon library with a Blade Icons package.
+- **Developer-Focused**: Designed for developers creating icon set implementations, not just end-users.
+
 # Available Icon Sets
 
 The following icon sets are available as separate packages that work with this core package:
@@ -11,6 +18,7 @@ The following icon sets are available as separate packages that work with this c
 - [Phosphor](https://github.com/filafly/filament-phosphor-icons)
 - [Font Awesome](https://github.com/filafly/filament-font-awesome-icons)
 - [Iconoir](https://github.com/filafly/filament-iconoir-icons)
+- [Carbon](https://github.com/filafly/filament-carbon-icons)
 
 ## Community Implementations
 - (none yet...)
@@ -19,118 +27,179 @@ The following icon sets are available as separate packages that work with this c
 This package allows you to create your own icon set implementations, enabling you to integrate any icon library that has a Blade Icons implementation with Filament. Here's how to get started:
 
 ## Requirements
-- Filament v4
-- [Blade Icons](https://github.com/blade-ui-kit/blade-icons) implementation of desired icon set
-If there isn't a Blade Icon implementation, you'll need to add it yourself. If you want to use Filament Icons in a Filament v3 project, use branch 1.x.
+- An icon set with a [Blade Icons](https://github.com/blade-ui-kit/blade-icons) implementation. If one doesn't exist, you'll need to create it.
+- Your project must use Filament v3. For Filament v2, use the `1.x` branch of this package.
 
-## Implementation
-1. Add the available icon styles and the corresponding style string used by Blade Icons.
+## Implementation Steps
+
+### 1. Define the Icon Enum
+Create a PHP enum that defines all icons in your set. The enum cases should have styles baked into their names (e.g., `SearchRegular`, `SearchSolid`).
 
 ```php
-enum MyIconSetStyle: string
+<?php
+
+namespace App\Enums;
+
+enum MyIcon: string
 {
-    case Regular = '';
-    case Solid = '-solid';
+    case SearchRegular = 'search';
+    case SearchSolid = 'search-solid';
+    // ... other icons
 }
 ```
-> **Note:** The package automatically generates style-specific methods based on your `$styleEnum`. For example, if you have `Solid` and `Duotone` cases in your style enum, you can use `->solid()` and `->duotone()` to set the current style.
 
-2. Define all icons in the set and implement the `ScalableIcon` interface.
+### 2. (Optional) Define the Style Enum
+If your icon set supports multiple styles (e.g., regular, solid, duotone), create a `StyleEnum` that implements `Filafly\Icons\Contracts\StyleEnum`. This ensures your enum provides the necessary methods for the style system.
 
 ```php
-use Filament\Support\Contracts\ScalableIcon;
-use Filament\Support\Enums\IconSize;
+<?php
 
-enum MyIconSet: string implements ScalableIcon
+namespace App\Enums;
+
+use Filafly\Icons\Contracts\StyleEnum as StyleEnumContract;
+
+enum MyIconStyle: string implements StyleEnumContract
 {
-    case ArrowUp = 'arrow-up';
-    case ArrowDown = 'arrow-down';
-    ...
+    case Regular = 'regular';
+    case Solid = 'solid';
 
-    public function getIconForSize(IconSize $size): string
+    public function getStyleName(): string
     {
-        // Your implementation of the ScalableIcon interface
+        return $this->value;
+    }
+
+    public function getEnumSuffix(): string
+    {
+        return ucfirst($this->value);
+    }
+
+    public static function getStyleNames(): array
+    {
+        return array_column(self::cases(), 'value');
+    }
+
+    public static function fromStyleName(string $styleName): ?self
+    {
+        foreach (self::cases() as $case) {
+            if ($case->getStyleName() === $styleName) {
+                return $case;
+            }
+        }
+        return null;
     }
 }
 ```
 
-3. Create an implementation of `Filafly\Icons\IconSet` with a class name that follows the pattern `MyIconSetIcons` (replace `MyIconSet` with the name of your icon set), and set `$pluginId`, `$iconEnum`, `$styleEnum`, and `$defaultStyle`.
+### 3. Create the IconSet Class
+Create a class that extends `Filafly\Icons\IconSet`. This class will manage your icon set's integration with Filament.
 
 ```php
+<?php
+
+namespace App\Icons;
+
+use App\Enums\MyIcon;
+use App\Enums\MyIconStyle;
 use Filafly\Icons\IconSet;
 
-class MyIconSetIcons extends IconSet
+class MyIcon extends IconSet
 {
-    protected string $pluginId = 'filafly-filament-my-icons';
-
-    protected mixed $iconEnum = MyIconSet::class;
-
-    protected mixed $styleEnum = MyIconSetStyle::class;
-
-    protected mixed $defaultStyle = MyIconSetStyle::Regular;
+    protected string $pluginId = 'vendor-filament-my-icons';
+    protected string $iconPrefix = 'my-icon'; // Optional: if different from guessed prefix
+    protected mixed $iconEnum = MyIcon::class;
+    protected ?string $styleEnum = MyIconStyle::class; // Optional
 }
 ```
 
-4. Map all Filament icon aliases to your desired icons. Do not include any style specific string fragments such as "regular", "duotone", "-o", or "far-".
+> **Icon Prefix**: The system automatically guesses the icon prefix from your `$iconEnum`'s class name (e.g., `MyIcon` becomes `myicon`). If your Blade Icons package uses a different prefix, set it with `$iconPrefix`.
+
+### 4. Map Filament Icon Aliases
+In your `IconSet` class, map Filament's icon aliases to your icon enum cases in the `$iconMap` array.
 
 ```php
 protected array $iconMap = [
-    'panels::global-search.field' => MyIconSet::Search,
-    'panels::pages.dashboard.actions.filter' => MyIconSet::Funnel,
-    'panels::pages.dashboard.navigation-item' => MyIconSet::House,
-    ...
+    'panels::global-search.field' => MyIcon::SearchRegular,
+    'panels::pages.dashboard.actions.filter' => MyIcon::SearchSolid,
+    // ... other mappings
 ];
 ```
 
-5. If the Blade Icon implementation of the icon set prefixes the style string to the icon name, make sure to indicate this so icon names are built properly.
+# Advanced Usage
+The `IconSet` class provides powerful methods for style transformations and granular overrides.
 
+## Global Styling
+You can set a global style for all icons in your set. This is useful for applying a consistent look across your application.
+
+### Using the `style()` method:
 ```php
-class MyIconSetIcons extends IconSet
-{
-    protected bool $shouldPrefixStyle = true;
-}
+MyIcon::make()->style('solid');
 ```
 
-## Optional Configuration
-
-### Setting a default style
-You can specify which style will be the default. If not specified, the first style will be used.
+### Using dynamic style methods:
+If you have a `StyleEnum` defined, you can use dynamic methods named after your styles:
 
 ```php
-protected string $defaultStyle = MyIconSetStyle::Regular;
+MyIcon::make()->solid();
+MyIcon::make()->regular();
 ```
 
-### Forcing styles
-You can force specific icons to always use a particular style using the `forcedStyles` array. This overrides any style settings, including the default style and dynamic style changes. This is particularly useful when certain icons are only available in specific styles, such as brand icons that may only exist in a single style variant.
+## Granular Overrides
+Overrides allow you to change icons for specific aliases or replace one icon with another. The override precedence is:
+
+1. **Exact Overrides**: `overrideAlias()` and `overrideIcon()`
+2. **Style Overrides**: `overrideStyleForAlias()` and `overrideStyleForIcon()`
+3. **Global Style**: `style()` or dynamic methods
+4. **Default**: The original mapping in `$iconMap`
+
+### `overrideAlias(string $alias, mixed $iconCase)`
+Overrides a specific Filament alias to use a different icon.
 
 ```php
-protected array $forcedStyles = [
-    'carat-up' => MyIconSetStyle::Solid,
-];
+MyIcon::make()->overrideAlias('panels::global-search.field', MyIcon::SearchSolid);
 ```
 
-### Advanced configuration
-For advanced customization, you can create additional methods that can be fluently chained on your `IconSet` class. These methods can modify the internal arrays and properties to control the behavior of the icon set.
-
-For example, you could add a `free()` method to restrict styles to only those available in the free version of an icon set:
+### `overrideAliases(array $overrides)`
+Overrides multiple aliases at once.
 
 ```php
-// In your icon set
-public function free(): self
-{
-    foreach ($onlyRegularExists as $icon) {
-        $this->forcedStyles[$icon] = MyIconSet::Regular;
-    }
+MyIcon::make()->overrideAliases([
+    'panels::global-search.field' => MyIcon::SearchSolid,
+    'panels::pages.dashboard.actions.filter' => MyIcon::SearchRegular,
+]);
+```
 
-    return $this;
-}
+### `overrideIcon(mixed $fromIconCase, mixed $toIconCase)`
+Replaces one icon enum case with another across all its uses.
 
-// In the Filament panel
-...
-->plugin(
-    MyIconSetIcons::make()->free()
-)
-...
+```php
+MyIcon::make()->overrideIcon(MyIcon::SearchRegular, MyIcon::SearchSolid);
+```
+
+### `overrideIcons(array $overrides)`
+Replaces multiple icons at once.
+
+```php
+MyIcon::make()->overrideIcons([
+    MyIcon::SearchRegular => MyIcon::SearchSolid,
+]);
+```
+
+### `overrideStyleForAlias(string|array $aliases, string|object $style)`
+Applies a specific style to one or more aliases.
+
+```php
+MyIcon::make()->overrideStyleForAlias('panels::global-search.field', 'solid');
+// or
+MyIcon::make()->overrideStyleForAlias(['panels::global-search.field'], MyIconStyle::Solid);
+```
+
+### `overrideStyleForIcon(mixed $iconCases, string|object $style)`
+Applies a specific style to one or more icon enum cases.
+
+```php
+MyIcon::make()->overrideStyleForIcon(MyIcon::SearchRegular, 'solid');
+// or
+MyIcon::make()->overrideStyleForIcon([MyIcon::SearchRegular], MyIconStyle::Solid);
 ```
 
 ## License
