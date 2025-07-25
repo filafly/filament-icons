@@ -52,6 +52,12 @@ abstract class IconSet implements Plugin
     /** Override icon enum cases to be replaced with different cases */
     protected array $iconOverrides = [];
 
+    /** Current style to apply to all icons (optional) */
+    protected ?IconStyle $currentStyle = null;
+
+    /** Available styles for this icon set (subset of IconStyle cases) */
+    protected array $availableStyles = [];
+
     public function getIconEnum(): mixed
     {
         return $this->iconEnum;
@@ -64,6 +70,7 @@ abstract class IconSet implements Plugin
                 // Apply any overrides - alias overrides take precedence
                 $finalIconCase = $this->aliasOverrides[$alias]
                     ?? $this->iconOverrides[$iconCase->value]
+                    ?? $this->applyStyleTransformation($iconCase)
                     ?? $iconCase;
 
                 // Prepend the icon prefix for Blade Icons
@@ -108,6 +115,100 @@ abstract class IconSet implements Plugin
         }
 
         return $this;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Style Transformation
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * Apply current style transformation to an icon case
+     */
+    private function applyStyleTransformation(mixed $iconCase): ?object
+    {
+        if (! $this->currentStyle) {
+            return null;
+        }
+
+        return $this->findIconWithStyle($iconCase, $this->currentStyle);
+    }
+
+    /**
+     * Find an icon enum case that matches the base name with a different style
+     */
+    private function findIconWithStyle(mixed $iconCase, IconStyle $targetStyle): ?object
+    {
+        // Check if the target style is available for this icon set
+        if (! in_array($targetStyle, $this->availableStyles)) {
+            return null;
+        }
+
+        $baseName = $this->extractBaseName($iconCase);
+        $targetSuffix = $targetStyle->getEnumSuffix();
+        $targetCaseName = $baseName.$targetSuffix;
+
+        $enumClass = $this->getIconEnum();
+
+        // Try to find the case with the target style
+        foreach ($enumClass::cases() as $case) {
+            if ($case->name === $targetCaseName) {
+                return $case;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Extract the base icon name from an enum case (removes style suffix)
+     */
+    private function extractBaseName(mixed $iconCase): string
+    {
+        $caseName = $iconCase->name;
+
+        // Use available style suffixes
+        foreach ($this->availableStyles as $style) {
+            $styleSuffix = $style->getEnumSuffix();
+            if (str_ends_with($caseName, $styleSuffix)) {
+                return substr($caseName, 0, -strlen($styleSuffix));
+            }
+        }
+
+        return $caseName;
+    }
+
+    /**
+     * Set a style for all icons
+     */
+    public function style(string $style): static
+    {
+        $styleEnum = IconStyle::fromStyleName($style);
+
+        if (! $styleEnum || ! in_array($styleEnum, $this->availableStyles)) {
+            $availableStyleNames = array_map(fn ($s) => $s->getStyleName(), $this->availableStyles);
+            throw new \InvalidArgumentException("Style '{$style}' is not available for this icon set. Available styles: ".implode(', ', $availableStyleNames));
+        }
+
+        $this->currentStyle = $styleEnum;
+
+        return $this;
+    }
+
+    /**
+     * Handle dynamic style method calls
+     */
+    public function __call(string $name, array $_): static
+    {
+        // Check if the method name matches an available style
+        $styleEnum = IconStyle::fromStyleName($name);
+        if ($styleEnum && in_array($styleEnum, $this->availableStyles)) {
+            return $this->style($name);
+        }
+
+        $availableStyleNames = array_map(fn ($s) => $s->getStyleName(), $this->availableStyles);
+        throw new \BadMethodCallException("Method '{$name}' does not exist. Available style methods: ".implode(', ', $availableStyleNames));
     }
 
     /*

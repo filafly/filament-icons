@@ -36,6 +36,16 @@
     "sort-packages": true
   },
   "require-dev": {
-    "laravel/pint": "^1.20"
+    "laravel/pint": "^1.20",
+    "phpunit/phpunit": "^11.0"
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Filafly\\Icons\\Tests\\": "tests/"
+    }
+  },
+  "scripts": {
+    "test": "phpunit --no-coverage",
+    "test-coverage": "phpunit --coverage-html coverage"
   }
 }
