@@ -9,6 +9,8 @@
     "icons",
     "Font Awesome",
     "Phosphor",
+    "Carbon",
+    "Iconoir",
     "replace",
     "swap"
   ],
@@ -30,7 +32,7 @@
       "Filafly\\Icons\\": "src/"
     }
   },
-  "minimum-stability": "beta",
+  "minimum-stability": "stable",
   "prefer-stable": true,
   "config": {
     "sort-packages": true
