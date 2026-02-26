@@ -31,7 +31,7 @@ If you want to create your own implementation manually, this package enables you
 
 ## Requirements
 - An icon set with a [Blade Icons](https://github.com/blade-ui-kit/blade-icons) implementation. If one doesn't exist, you'll need to create it.
-- Your project must use Filament v3. For Filament v2, use the `1.x` branch of this package.
+- Your project must use Filament v4 or v5. For older versions, use the `1.x` branch of this package.
 
 ## Implementation Steps
 
