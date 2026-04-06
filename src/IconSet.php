@@ -73,6 +73,9 @@ abstract class IconSet implements Plugin
     /** Current style to apply to all icons (optional) */
     protected mixed $currentStyle = null;
 
+    /** Static hash index mapping enum case names to their instances for O(1) lookup */
+    private static ?array $casesByNameIndex = null;
+
     public function getIconEnum(): mixed
     {
         return $this->iconEnum;
@@ -313,14 +316,15 @@ abstract class IconSet implements Plugin
 
         $enumClass = $this->getIconEnum();
 
-        // Try to find the case with the target style
-        foreach ($enumClass::cases() as $case) {
-            if ($case->name === $targetCaseName) {
-                return $case;
+        // Build index once, then use O(1) lookup instead of O(n) linear scan
+        if (self::$casesByNameIndex === null) {
+            self::$casesByNameIndex = [];
+            foreach ($enumClass::cases() as $case) {
+                self::$casesByNameIndex[$case->name] = $case;
             }
         }
 
-        return null;
+        return self::$casesByNameIndex[$targetCaseName] ?? null;
     }
 
     /**
