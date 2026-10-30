@@ -205,6 +205,10 @@ MyIcon::make()->overrideStyleForIcon(MyIcon::SearchRegular, 'solid');
 MyIcon::make()->overrideStyleForIcon([MyIcon::SearchRegular], MyIconStyle::Solid);
 ```
 
+## From FilaFly
+
+FilaFly also makes premium themes for Filament panels: Lucent, Prizm, Cypher and Citrus. [Browse the themes](https://filafly.com/themes?utm_source=github&utm_medium=readme&utm_campaign=filament-icons).
+
 ## License
 
 The MIT License (MIT). Please see [License File](LICENSE.md) for more information.
