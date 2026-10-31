@@ -3,6 +3,8 @@
 </p>
 A package to replace Filament's default Heroicons with your preferred icon set, providing unified icon management with style variations and overrides.
 
+More about this package on FilaFly: [Filament Icons on FilaFly](https://filafly.com/plugins/filament-icons).
+
 # Features
 - **Unified Icon Management**: Standardize all icons across your Filament project.
 - **Style Variations**: Switch between icon styles (e.g., `solid`, `regular`, `light`) with a single method call.
@@ -105,12 +107,12 @@ use App\Enums\MyIcon;
 use App\Enums\MyIconStyle;
 use Filafly\Icons\IconSet;
 
-class MyIcon extends IconSet
+class MyIcons extends IconSet
 {
     protected string $pluginId = 'vendor-filament-my-icons';
     protected string $iconPrefix = 'my-icon'; // Optional: if different from guessed prefix
     protected mixed $iconEnum = MyIcon::class;
-    protected ?string $styleEnum = MyIconStyle::class; // Optional
+    protected mixed $styleEnum = MyIconStyle::class; // Optional
 }
 ```
 
@@ -135,15 +137,15 @@ You can set a global style for all icons in your set. This is useful for applyin
 
 ### Using the `style()` method:
 ```php
-MyIcon::make()->style('solid');
+MyIcons::make()->style('solid');
 ```
 
 ### Using dynamic style methods:
 If you have a `StyleEnum` defined, you can use dynamic methods named after your styles:
 
 ```php
-MyIcon::make()->solid();
-MyIcon::make()->regular();
+MyIcons::make()->solid();
+MyIcons::make()->regular();
 ```
 
 ## Granular Overrides
@@ -158,14 +160,14 @@ Overrides allow you to change icons for specific aliases or replace one icon wit
 Overrides a specific Filament alias to use a different icon.
 
 ```php
-MyIcon::make()->overrideAlias('panels::global-search.field', MyIcon::SearchSolid);
+MyIcons::make()->overrideAlias('panels::global-search.field', MyIcon::SearchSolid);
 ```
 
 ### `overrideAliases(array $overrides)`
 Overrides multiple aliases at once.
 
 ```php
-MyIcon::make()->overrideAliases([
+MyIcons::make()->overrideAliases([
     'panels::global-search.field' => MyIcon::SearchSolid,
     'panels::pages.dashboard.actions.filter' => MyIcon::SearchRegular,
 ]);
@@ -175,14 +177,14 @@ MyIcon::make()->overrideAliases([
 Replaces one icon enum case with another across all its uses.
 
 ```php
-MyIcon::make()->overrideIcon(MyIcon::SearchRegular, MyIcon::SearchSolid);
+MyIcons::make()->overrideIcon(MyIcon::SearchRegular, MyIcon::SearchSolid);
 ```
 
 ### `overrideIcons(array $overrides)`
 Replaces multiple icons at once.
 
 ```php
-MyIcon::make()->overrideIcons([
+MyIcons::make()->overrideIcons([
     MyIcon::SearchRegular => MyIcon::SearchSolid,
 ]);
 ```
@@ -191,18 +193,18 @@ MyIcon::make()->overrideIcons([
 Applies a specific style to one or more aliases.
 
 ```php
-MyIcon::make()->overrideStyleForAlias('panels::global-search.field', 'solid');
+MyIcons::make()->overrideStyleForAlias('panels::global-search.field', 'solid');
 // or
-MyIcon::make()->overrideStyleForAlias(['panels::global-search.field'], MyIconStyle::Solid);
+MyIcons::make()->overrideStyleForAlias(['panels::global-search.field'], MyIconStyle::Solid);
 ```
 
 ### `overrideStyleForIcon(mixed $iconCases, string|object $style)`
 Applies a specific style to one or more icon enum cases.
 
 ```php
-MyIcon::make()->overrideStyleForIcon(MyIcon::SearchRegular, 'solid');
+MyIcons::make()->overrideStyleForIcon(MyIcon::SearchRegular, 'solid');
 // or
-MyIcon::make()->overrideStyleForIcon([MyIcon::SearchRegular], MyIconStyle::Solid);
+MyIcons::make()->overrideStyleForIcon([MyIcon::SearchRegular], MyIconStyle::Solid);
 ```
 
 ## From FilaFly
