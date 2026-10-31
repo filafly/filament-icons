@@ -3,6 +3,8 @@
 </p>
 A package to replace Filament's default Heroicons with your preferred icon set, providing unified icon management with style variations and overrides.
 
+More about this package on FilaFly: [Filament Icons on FilaFly](https://filafly.com/plugins/filament-icons).
+
 # Features
 - **Unified Icon Management**: Standardize all icons across your Filament project.
 - **Style Variations**: Switch between icon styles (e.g., `solid`, `regular`, `light`) with a single method call.
