@@ -1,0 +1,8 @@
+{
+  "name": "filament-icons",
+  "private": true,
+  "description": "Not a Node project. This file only tells the ship gate how to run the PHPUnit suite (npm test). It is left out of Composer installs.",
+  "scripts": {
+    "test": "composer update --no-interaction --prefer-dist --no-progress && vendor/bin/phpunit"
+  }
+}

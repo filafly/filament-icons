@@ -73,8 +73,8 @@ abstract class IconSet implements Plugin
     /** Current style to apply to all icons (optional) */
     protected mixed $currentStyle = null;
 
-    /** Static hash index mapping enum case names to their instances for O(1) lookup */
-    private static ?array $casesByNameIndex = null;
+    /** Hash index per enum class, mapping case names to their instances for O(1) lookup */
+    private static array $casesByNameIndex = [];
 
     public function getIconEnum(): mixed
     {
@@ -302,11 +302,12 @@ abstract class IconSet implements Plugin
         $baseName = $this->extractBaseName($iconCase);
         $targetSuffix = $targetStyle->getEnumSuffix();
 
-        // Determine whether the suffix is prefix or postfix
-        if (str_ends_with($this->currentStyle->value, '-')) {
+        // Determine whether the suffix is prefix or postfix. Use the target style: there may be
+        // no global style when only a per-alias or per-icon style override is set.
+        if (str_ends_with($targetStyle->value, '-')) {
             // e.g., "Bold" + "Search" => "BoldSearch"
             $targetCaseName = $targetSuffix.$baseName;
-        } elseif (str_starts_with($this->currentStyle->value, '-')) {
+        } elseif (str_starts_with($targetStyle->value, '-')) {
             // e.g., "Search" + "Bold" => "SearchBold"
             $targetCaseName = $baseName.$targetSuffix;
         } else {
@@ -316,15 +317,15 @@ abstract class IconSet implements Plugin
 
         $enumClass = $this->getIconEnum();
 
-        // Build index once, then use O(1) lookup instead of O(n) linear scan
-        if (self::$casesByNameIndex === null) {
-            self::$casesByNameIndex = [];
+        // Build each enum's index once, then use O(1) lookup instead of O(n) linear scan
+        if (! isset(self::$casesByNameIndex[$enumClass])) {
+            self::$casesByNameIndex[$enumClass] = [];
             foreach ($enumClass::cases() as $case) {
-                self::$casesByNameIndex[$case->name] = $case;
+                self::$casesByNameIndex[$enumClass][$case->name] = $case;
             }
         }
 
-        return self::$casesByNameIndex[$targetCaseName] ?? null;
+        return self::$casesByNameIndex[$enumClass][$targetCaseName] ?? null;
     }
 
     /**
