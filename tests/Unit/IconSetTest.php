@@ -315,6 +315,33 @@ class IconSetTest extends TestCase
 
         $this->iconSet->overrideStyleForIcon([TestIconEnum::PlusRegular, TestIconEnum::TrashRegular], 'filled');
     }
+
+    public function test_style_override_works_without_a_global_style()
+    {
+        set_error_handler(function (int $severity, string $message) {
+            throw new \ErrorException($message, 0, $severity);
+        });
+
+        try {
+            $this->iconSet->overrideStyleForAlias('actions.create', 'solid');
+
+            $this->assertNull($this->iconSet->getCurrentStyle());
+            $this->assertEquals(TestIconEnum::PlusSolid, $this->iconSet->findIconWithStyleForTest(TestIconEnum::PlusRegular, TestStyleEnum::Solid));
+            $this->assertEquals(TestIconEnum::TrashRegular, $this->iconSet->findIconWithStyleForTest(TestIconEnum::TrashSolid, TestStyleEnum::Regular));
+        } finally {
+            restore_error_handler();
+        }
+    }
+
+    public function test_icon_sets_with_different_enums_look_up_their_own_cases()
+    {
+        $this->assertEquals(TestIconEnum::SearchSolid, $this->iconSet->findIconWithStyleForTest(TestIconEnum::SearchRegular, TestStyleEnum::Solid));
+
+        $other = new OtherTestIconSet;
+
+        $this->assertEquals(OtherTestIconEnum::BellSolid, $other->findIconWithStyleForTest(OtherTestIconEnum::BellRegular, TestStyleEnum::Solid));
+        $this->assertEquals(TestIconEnum::PlusSolid, $this->iconSet->findIconWithStyleForTest(TestIconEnum::PlusRegular, TestStyleEnum::Solid));
+    }
 }
 
 // Test implementations
@@ -401,4 +428,28 @@ class TestIconSet extends IconSet
     {
         return $this->currentStyle;
     }
+
+    public function findIconWithStyleForTest(mixed $iconCase, mixed $style): ?object
+    {
+        $method = new \ReflectionMethod(IconSet::class, 'findIconWithStyle');
+
+        return $method->invoke($this, $iconCase, $style);
+    }
+}
+
+enum OtherTestIconEnum: string
+{
+    case BellRegular = 'bell-regular';
+    case BellSolid = 'bell-solid';
+}
+
+class OtherTestIconSet extends TestIconSet
+{
+    protected string $pluginId = 'other-test-icons';
+
+    protected mixed $iconEnum = OtherTestIconEnum::class;
+
+    protected array $iconMap = [
+        'notifications.bell' => OtherTestIconEnum::BellRegular,
+    ];
 }
